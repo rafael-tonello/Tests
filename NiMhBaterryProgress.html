@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, user-scalable=no">
+		<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/SerraFullStack/SJL/SJL.js"></script>
+        <script type="text/javascript">
+		
+			function start(){
+				//the variables bellow is used by start funcion to known if necessary components are already loaded
+				//global and shared information
+				AppStates = {};
+
+				//this function is responsible to start the application (load services and first actvity)
+				SJL.start({useInstancesPool: false, usePermanentCache: false});
+				
+				startMonitor();
+				
+			}
+			
+			var startTime = new Date();
+			var monitorInterval = null;
+			
+			function calculateProgress(){
+				try{
+					var currentTotalTime = parseFloat($("#offset").getValue()) * 60 * 60;
+					var timeFromStartUntilNow = Math.abs(new Date() - startTime);
+					//convert timeFromStartUntilNow to seconds and add to currentTotalTime
+					timeFromStartUntilNow = timeFromStartUntilNow / 1000;
+					currentTotalTime += timeFromStartUntilNow;
+					
+					
+					var batteryCapacity = parseFloat($("#batteryCapacity").getValue()) * parseFloat($("#batteriesCount").getValue());
+					var chargerOutputCurrent = parseFloat($("#chargerOutput").getValue());
+					
+					//convert scales
+					
+					chargerOutputCurrent = chargerOutputCurrent /1000;
+					currentTotalTime = currentTotalTime / 60/60;
+					batteryCapacity  = batteryCapacity /1000;
+					
+					
+					//calculate current charge
+					var currentCharge = (currentTotalTime - (currentTotalTime*0.2)) * chargerOutputCurrent;
+					var batteryPercent = currentCharge / batteryCapacity*100;
+					
+					console.log("Current charge time: ", currentTotalTime);
+					console.log("Battery capacity:", batteryCapacity)
+					console.log("Charger output current:", chargerOutputCurrent);
+					console.log("Current battery charge:", currentCharge);
+					console.log("Current battery charge (percent):", batteryPercent + "%");
+					console.log("Progress ", batteryPercent);
+					console.log("\r\n\r\n");
+					
+					
+					
+					$(".progress").setProperty("style.width", batteryPercent + "%");
+					$("#text").setValue(batteryPercent.toFixed(2) + "% ("+currentCharge.toFixed(2)+" mAh)");
+					
+					if (isNaN(batteryPercent))
+						throw("Invalid params");
+					
+					if (batteryPercent >= 95){					
+						$(".progress").setProperty("style.background", "#ff9400");
+					}
+					else if (batteryPercent > 100){
+						$(".progress").setProperty("style.background", "#FF0000");
+						$("#text").setValue($("#text").getValue() + " - Avoid problems, remove charger from power")
+					
+					}
+					else{
+						$(".progress").setProperty("style.background", "var(--originalColor)");
+					}
+					
+					
+				
+				}
+				catch(e){
+					$(".progress").setProperty("style.width", "100%");
+					$("#text").setValue("Inform valid values above");
+					$(".progress").setProperty("style.background", "#858585");
+				}
+			}
+			
+			
+			function startMonitor(){
+				if (monitorInterval != null)
+					clearInterval(monitorInterval);
+					
+				startTime = new Date();
+				
+				monitorInterval = setInterval(()=>{
+					calculateProgress();
+				}, 1000);
+			}
+		
+        </script>
+    </head>
+	<style type="text/css">
+		.progress{
+			--originalColor:#0090FA;
+			width:100%;
+			height:50px;
+			background:var(--originalColor);
+			text-align:center;
+			max-width:100%;
+			
+		}
+	
+	</style>
+    <body onload="start();" style="background:#beb0a3; margin:0; padding:0;">
+		<div>
+			Offset time (hours):
+			<input type="text" id="offset" value="0"/>
+		</div>
+		<div>
+			Charger output current (mAh):
+			<input type="text" id="chargerOutput" value="200"/>
+		</div>
+		
+		<div>
+			Each battery capacity (mAh):
+			<input type="text" id="batteryCapacity" value="1500"/>
+		</div>
+		<div>
+			Batteries in serie (number of batteries in each charger circuit):
+			<input type="text" id="batteriesCount" value="2"/>
+		</div>
+		
+		<div class="progress">
+			<div id="text" style="padding-top:15px; width:100%; min-width:200px;"></div>
+		</div>
+		
+        
+    </body>
+</html>
